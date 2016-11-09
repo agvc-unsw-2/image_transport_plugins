@@ -39,7 +39,7 @@
 #include <boost/make_shared.hpp>
 
 #include "compressed_image_transport/compression_common.h"
-
+#include "turbojpeg.h"
 #include <vector>
 #include <sstream>
 
@@ -115,33 +115,30 @@ void CompressedPublisher::publish(const sensor_msgs::Image& message, const Publi
           compressed.format += targetFormat;
         }
 
-        // OpenCV-ros bridge
-        try
-        {
-          boost::shared_ptr<CompressedPublisher> tracked_object;
-          cv_bridge::CvImageConstPtr cv_ptr = cv_bridge::toCvShare(message, tracked_object, targetFormat);
+        // turbo jpeg 
+		const int JPEG_QUALITY = config_.jpeg_quality;
+		const int COLOR_COMPONENTS = 3;
+		const int _width = message.width;
+		const int _height = message.height;
+		long unsigned int _jpegSize = 0;
+		unsigned char* _compressedImage = NULL; //!< Memory is allocated by tjCompress2 if _jpegSize == 0
+		// unsigned char buffer[_width*_height*COLOR_COMPONENTS]; //!< Contains the uncompressed image
+		const unsigned char * buffer = &message.data[0];
 
-          // Compress image
-          if (cv::imencode(".jpg", cv_ptr->image, compressed.data, params))
-          {
+		static tjhandle _jpegCompressor = tjInitCompress();
 
-            float cRatio = (float)(cv_ptr->image.rows * cv_ptr->image.cols * cv_ptr->image.elemSize())
-                / (float)compressed.data.size();
-            ROS_DEBUG("Compressed Image Transport - Codec: jpg, Compression Ratio: 1:%.2f (%lu bytes)", cRatio, compressed.data.size());
-          }
-          else
-          {
-            ROS_ERROR("cv::imencode (jpeg) failed on input image");
-          }
-        }
-        catch (cv_bridge::Exception& e)
-        {
-          ROS_ERROR("%s", e.what());
-        }
-        catch (cv::Exception& e)
-        {
-          ROS_ERROR("%s", e.what());
-        }
+		tjCompress2(_jpegCompressor, (unsigned char*) buffer, _width, 0, _height, TJPF_RGB,  &_compressedImage, &_jpegSize, TJSAMP_444, JPEG_QUALITY, TJFLAG_FASTDCT);
+
+		//		  tjDestroy(_jpegCompressor);
+
+		compressed.data.resize(_jpegSize);
+		memcpy(&compressed.data[0], _compressedImage, _jpegSize);
+
+		tjFree(_compressedImage);
+
+//		  float cRatio = (float)(_width * _height * COLOR_COMPONENTS) / (float)compressed.data.size();
+//		  ROS_DEBUG("Compressed Image Transport (turbo)- Codec: jpg, Compression Ratio: 1:%.2f (%lu bytes)", cRatio, compressed.data.size());
+
 
         // Publish message
         publish_fn(compressed);
