@@ -107,11 +107,10 @@ void CompressedPublisher::publish(const sensor_msgs::Image& message, const Publi
       if ((bitDepth == 8) || (bitDepth == 16))
       {
         // Target image format
-        std::string targetFormat;
+        std::string targetFormat = message.encoding;
         if (enc::isColor(message.encoding))
         {
           // convert color images to BGR8 format
-          targetFormat = "bgr8";
           compressed.format += targetFormat;
         }
 
@@ -126,8 +125,13 @@ void CompressedPublisher::publish(const sensor_msgs::Image& message, const Publi
 		const unsigned char * buffer = &message.data[0];
 
 		static tjhandle _jpegCompressor = tjInitCompress();
+		
+		enum TJPF input_format = TJPF_RGB;
+		if (message.encoding == "bgr8") {
+			input_format = TJPF_BGR;
+		}
 
-		tjCompress2(_jpegCompressor, (unsigned char*) buffer, _width, 0, _height, TJPF_RGB,  &_compressedImage, &_jpegSize, TJSAMP_444, JPEG_QUALITY, TJFLAG_FASTDCT);
+		tjCompress2(_jpegCompressor, (unsigned char*) buffer, _width, 0, _height, input_format,  &_compressedImage, &_jpegSize, TJSAMP_444, JPEG_QUALITY, TJFLAG_FASTDCT);
 
 		//		  tjDestroy(_jpegCompressor);
 
