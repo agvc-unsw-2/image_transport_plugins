@@ -9,8 +9,7 @@ size_t compressGreyscalePng(size_t width, size_t height, uint16_t bits,
         int level);
 
 size_t readGreyscalePng(size_t *width, size_t *height, uint16_t *bits,
-        const uint8_t *pngBuff, size_t *idatSize, size_t *rawSize,
-        const uint8_t **idatBuff);
+        const uint8_t *pngBuff, size_t *idatSize, const uint8_t **idatBuff);
 
 size_t decompressGreyscalePng(const uint8_t *idatBuff, size_t idatSize,
         uint8_t *rawBuff, size_t rawBuffCapacity);

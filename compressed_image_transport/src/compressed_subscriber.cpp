@@ -91,11 +91,15 @@ namespace compressed_image_transport
                 size_t width = 0, height = 0;
                 uint16_t bits = 0;
                 size_t idatSize = 0;
-                size_t rawSize = 0;
                 const uint8_t *idatBuff;
 
-                readGreyscalePng(&width, &height, &bits, message->data.data(),
-                        &idatSize, &rawSize, &idatBuff);
+                size_t rawSize = readGreyscalePng(&width, &height, &bits,
+                        message->data.data(),
+                        &idatSize, &idatBuff);
+
+                if (rawSize == 0) {
+                    ROS_ERROR("Zpng image decoding error");
+                }
 
                 sensor_msgs::Image *newMessage = new sensor_msgs::Image;
                 newMessage->header = message->header;
@@ -104,6 +108,11 @@ namespace compressed_image_transport
                 newMessage->is_bigendian = false;
                 newMessage->step = width * bits / 8;
                 newMessage->data.resize(rawSize);
+                if (bits == 8) {
+                    newMessage->encoding = "mono8";
+                } else {
+                    newMessage->encoding = "mono16";
+                }
 
                 decompressGreyscalePng(idatBuff, idatSize,
                         newMessage->data.data(), rawSize);

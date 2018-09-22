@@ -100,7 +100,7 @@ uint32_t readChunk(const uint8_t *buf, char *type, uint8_t *data, uint32_t maxSi
     }
     buf += 4;
 
-    if (data && maxSize > size) {
+    if (data && maxSize >= size) {
         memcpy(data, buf, size);
     }
 
@@ -154,8 +154,7 @@ size_t compressGreyscalePng(size_t width, size_t height, uint16_t bits,
 }
 
 size_t readGreyscalePng(size_t *width, size_t *height, uint16_t *bits,
-        const uint8_t *pngBuff, size_t *idatSize, size_t *rawSize,
-        const uint8_t **idatBuff)
+        const uint8_t *pngBuff, size_t *idatSize, const uint8_t **idatBuff)
 {
     const uint8_t *rdBuff = pngBuff;
 
@@ -168,13 +167,15 @@ size_t readGreyscalePng(size_t *width, size_t *height, uint16_t *bits,
     struct pngIHDR ihdr;
     rdBuff += readChunk(rdBuff, NULL, (uint8_t *)&ihdr, sizeof(ihdr));
 
-    *width = ihdr.width;
-    *height = ihdr.height;
+    *width = ntohl(ihdr.width);
+    *height = ntohl(ihdr.height);
     *bits = ihdr.depth;
-    *rawSize = ihdr.width * ihdr.height * ihdr.depth / 8;
+    size_t rawSize = *width * *height * ihdr.depth / 8;
 
     *idatSize = readChunk(rdBuff, NULL, NULL, 0) - 12;
     *idatBuff = rdBuff + 8;
+
+    return rawSize;
 }
 
 size_t decompressGreyscalePng(const uint8_t *idatBuff, size_t idatSize,
