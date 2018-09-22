@@ -1,2 +1,4 @@
 debian/
 obj-*/
+
+*.sw*
