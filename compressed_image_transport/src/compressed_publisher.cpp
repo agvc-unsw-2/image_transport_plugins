@@ -81,6 +81,11 @@ namespace compressed_image_transport
         sensor_msgs::CompressedImage compressed;
         compressed.header = message.header;
         compressed.format = message.encoding;
+        if (compressed.format == "16UC1") {
+            compressed.format = "mono16";
+        } else if (compressed.format == "8UC1") {
+            compressed.format = "mono8";
+        }
 
         // Compression settings
         std::vector<int> params;
